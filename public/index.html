@@ -2,25 +2,28 @@
 <html>
 
 <head>
-  <meta charset="utf-8">
-  <title>FB - Auth</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-    crossorigin="anonymous">
-  <style media="screen">
-    #fb-btn{margin-top:20px;}
+    <meta charset="utf-8">
+    <title>FB - Auth</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <style media="screen">
+        #fb-btn{margin-top:20px;}
       #profile, #logout, #feed{display:none}
       ul{word-break: break-word;}
     </style>
 </head>
 
 <body>
-  <script>
+    <script>
     let userId;
     let pageIds = [];
+    let accessToken = [];
+    let appId = 'XXXX';
+    let appSecret = 'XXXX';
+    let appAccessToken;
     
     window.fbAsyncInit = function() {
         FB.init({
-          appId      : 'YOUR_APP_ID',
+          appId      : 'XXXX',
           cookie     : true,
           xfbml      : true,
           version    : 'v3.1'
@@ -40,7 +43,9 @@
        }(document, 'script', 'facebook-jssdk'));
 
        function statusChangeCallback(response){
+         console.log('statusChangeCallback -->' + JSON.stringify(response));
          if(response.status === 'connected'){
+           appAccessToken = response.authResponse.accessToken;
            console.log('Logged in and authenticated');
            setElements(true);
            testAPI();
@@ -77,13 +82,17 @@
             'GET',
             {},
             function(response) {
-              console.log('Account Info' + JSON.stringify(response));
+              console.log('me accounts' + JSON.stringify(response));
               response.data.forEach(element => {
-                console.log('Account id' + JSON.stringify(element.id));
+                accessToken.push(element.access_token); 
+                // console.log('Account id' + JSON.stringify(element.id));
+                // console.log('Account access_token' + JSON.stringify(element.access_token));
                 pageIds.push(element.id);
               });
-              console.log('pageIds' + JSON.stringify(pageIds));
+              console.log('pageIds arr' + JSON.stringify(pageIds));
+              console.log('accessToken arr' + JSON.stringify(accessToken));
               getPages();
+              // getPermission();
             }
           );
       }
@@ -107,7 +116,40 @@
         }
       );
       });
+      setSubscriptions();
       }
+    
+
+      function setSubscriptions(){
+        console.log('appAccessToken' + appAccessToken);
+        // include_values
+        FB.api("/"+appId+"/subscriptions", 'POST', 
+        { object:'page', callback_url :'https://dev.enterice.com/webhook',include_values: true,verify_token:'ICEchat',
+        access_token: appId+'|'+appSecret},
+        function (response) {
+          console.log('setSubscriptions' + JSON.stringify(response));
+          if (response && !response.error) {
+           
+          }
+        }
+      );
+
+      getSubscriptions();
+      }
+
+      function getSubscriptions(){
+        FB.api("me/subscribed_apps", 'POST',{
+          access_token: accessToken[0]
+        },
+        function (response) {
+          console.log('Get getSubscriptions' + JSON.stringify(response));
+          if (response && !response.error) {
+           
+          }
+        }
+      );
+      }
+
       function buildProfile(user){
         //<li class="list-group-item">Birthday: ${user.birthday}</li>
         //<li class="list-group-item">User ID: ${user.location.name}</li>
@@ -164,42 +206,41 @@
       }
     </script>
 
-  <nav class="navbar navbar-default">
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">FB Auth</a>
+            </div>
+            <div id="navbar" class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="index.html">Home</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a id="logout" href="#" onclick="logout()">Logout</a></li>
+                    <fb:login-button id="fb-btn" scope="public_profile,email,manage_pages,pages_messaging,pages_messaging_subscriptions" onlogin="checkLoginState();">
+                    </fb:login-button>
+                </ul>
+            </div>
+            <!--/.nav-collapse -->
+        </div>
+    </nav>
+
     <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
-          aria-expanded="false" aria-controls="navbar">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="#">FB Auth</a>
-      </div>
-      <div id="navbar" class="collapse navbar-collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="index.html">Home</a></li>
-        </ul>
-        <ul class="nav navbar-nav navbar-right">
-          <li><a id="logout" href="#" onclick="logout()">Logout</a></li>
-          <fb:login-button id="fb-btn" scope="public_profile,email,user_birthday,user_location,user_posts" onlogin="checkLoginState();">
-          </fb:login-button>
-        </ul>
-      </div>
-      <!--/.nav-collapse -->
+        <h3 id="heading">Log in to view your profile</h3>
+        <div id="profile"></div>
+
+        <div id="pageInfo">
+            <h3>Pages:</h3>
+        </div>
+
+        <div id="feed"></div>
     </div>
-  </nav>
-
-  <div class="container">
-    <h3 id="heading">Log in to view your profile</h3>
-    <div id="profile"></div>
-
-    <div id="pageInfo">
-      <h3>Pages:</h3>
-    </div>
-
-    <div id="feed"></div>
-  </div>
 </body>
 
 </html>

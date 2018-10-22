@@ -14,6 +14,9 @@ app.all('/*', function (req, res, next) {
 });
 
 app.use(express.static('public'));
+var path = require('path');
+app.use('/fbauth', express.static(path.join(__dirname, '/public')));
+
 var port = process.argv[2] || 3002;
 http.listen(port, function (req, res) {
 	console.log('Express server running on port -->' + port);
